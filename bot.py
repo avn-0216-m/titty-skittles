@@ -10,6 +10,8 @@ token = {}
 
 url = "https://www.aphrodites.shop/product/EACYP/estrofemanddiane35-3monthbundle"
 
+test_url = "https://www.reddit.com" #Reliably does not contain "out of stock" in its response body.
+
 querying_store = False
 
 query_headers = {'user-agent': 'Titty Skittles discord bot'}
@@ -24,12 +26,20 @@ with open("bot_token.txt") as file:
 
 async def query_store():
     print("Beginning store query routine.")
+    should_alert = True
     while True:
-        await asyncio.sleep(60 * 15) #Every 15 minutes.
+        await asyncio.sleep(10) #Every 15 minutes.
         response = requests.get(url, headers={'user-agent':'Titty Skittles Discord Bot'})
         print("Store queried.")
         if "out of stock" not in response.text.lower():
+
             print("Titty skittles in stock!")
+
+            if not should_alert:
+                return
+
+            print("Informing everyone!")
+
             for guild in bot.guilds:
                 channel_id = output_channels.get(guild.id, None)
                 if channel_id is not None:
@@ -55,6 +65,9 @@ async def query_store():
 
                     except:
                         print(f"Something went wrong with messaging {channel_id}. :(")
+                should_alert = False #Wont alert again until 
+        else:
+            should_alert = True
 
 
 @bot.command()

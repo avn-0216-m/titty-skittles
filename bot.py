@@ -1,3 +1,4 @@
+import json
 import asyncio
 import requests
 import discord
@@ -69,10 +70,37 @@ async def query_store():
         else:
             should_alert = True
 
+def load_from_storage():
+
+    with open("guilds.json") as g_json_in:
+        output_channels = json.load(g_json_in)
+
+    with open("users.json") as u_json_in:
+        ping_users = json.load(u_json_in)
+
+    print("Loaded data:")
+    print(output_channels)
+    print(ping_users)
+
+    print("Data loaded.")
+
+
+def persist_storage():
+
+    with open("guilds.json", "w") as g_json_out:
+        json.dump(output_channels, g_json_out)
+
+    with open("users.json", "w") as u_json_out:
+        json.dump(ping_users, u_json_out)
+
+    print("Data persisted.")
+
 @bot.command()
 async def here(context):
     output_channels[context.guild.id] = context.channel.id
     await context.send("Got it! I'll post here if HRT is in stock. :)")
+
+    persist_storage()
 
 @bot.command()
 async def subscribe(context):
@@ -88,6 +116,8 @@ async def subscribe(context):
     print(f"Users to ping in {context.guild.name}:")
     print(server_ping_users)
 
+    persist_storage()
+
 @bot.command()
 async def unsubscribe(context):
     await context.send("Alright, you won't be pinged by me. :)")
@@ -98,8 +128,13 @@ async def unsubscribe(context):
     print(f"Users to ping in {context.guild.name}:")
     print(server_ping_users)
 
+    persist_storage()
+
 @bot.command()
 async def about(context):
+
+    persist_storage()
+
     await context.send("""Hello! I'm the titty skittles bot. I ping https://www.aphrodites.shop/product/EACYP/estrofemanddiane35-3monthbundle every 15 minutes to see if HRT is available.
     \nUse **e!here** to tell me what text channel you'd like me to post notifications in.
     \nUse **e!subscribe** if you'd like me to ping you when HRT is in stock!
@@ -109,6 +144,8 @@ async def about(context):
 @bot.event
 async def on_ready():
     print("Titty skittles bot ready.")
+
+    load_from_storage()
 
     await bot.change_presence(activity = discord.Game("e!about for info. :)"))
 

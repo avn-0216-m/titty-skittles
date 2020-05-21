@@ -28,7 +28,7 @@ async def query_store():
     print("Beginning store query routine.")
     should_alert = True
     while True:
-        await asyncio.sleep(10) #Every 15 minutes.
+        await asyncio.sleep(60 * 15) #Every 15 minutes.
         response = requests.get(url, headers={'user-agent':'Titty Skittles Discord Bot'})
         print("Store queried.")
         if "out of stock" not in response.text.lower():
@@ -69,7 +69,6 @@ async def query_store():
         else:
             should_alert = True
 
-
 @bot.command()
 async def here(context):
     output_channels[context.guild.id] = context.channel.id
@@ -99,9 +98,20 @@ async def unsubscribe(context):
     print(f"Users to ping in {context.guild.name}:")
     print(server_ping_users)
 
+@bot.command()
+async def about(context):
+    await context.send("""Hello! I'm the titty skittles bot. I ping https://www.aphrodites.shop/product/EACYP/estrofemanddiane35-3monthbundle every 15 minutes to see if HRT is available.
+    \nUse **e!here** to tell me what text channel you'd like me to post notifications in.
+    \nUse **e!subscribe** if you'd like me to ping you when HRT is in stock!
+    \nUse **e!unsubscribe** if you no longer want me to ping you about HRT.
+    \nThank you for using me~!""")
+
 @bot.event
 async def on_ready():
     print("Titty skittles bot ready.")
+
+    await bot.change_presence(activity = discord.Game("e!about for info. :)"))
+
     global querying_store
     if not querying_store:
         querying_store = True

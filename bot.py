@@ -72,15 +72,13 @@ async def query_store():
 
 def load_from_storage():
 
+    print("Loading data from storage.")
+
     with open("guilds.json") as g_json_in:
         output_channels = json.load(g_json_in)
 
     with open("users.json") as u_json_in:
         ping_users = json.load(u_json_in)
-
-    print("Loaded data:")
-    print(output_channels)
-    print(ping_users)
 
     print("Data loaded.")
 

@@ -2,11 +2,27 @@ import json
 import asyncio
 import requests
 import discord
+import logging
 from discord.ext import commands
 from discord.utils import get
 import sqlite3
 
 bot = commands.Bot(command_prefix="e!")
+
+#Setup logger
+logger = logging.getLogger('Titty Skittles')
+formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d :: %(levelname)s :: %(message)s', datefmt='%Y-%m-%d :: %H:%M:%S')
+ch = logging.StreamHandler()
+ch.setFormatter(formatter)
+fh = logging.FileHandler('log.txt')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
+logger.setLevel(logging.INFO)
+
+logger.info("-----------------------------------------------")
+logger.info("It's a new day~!")
+logger.info("-----------------------------------------------")
 
 database_name = "database.sqlite3"
 conn = sqlite3.connect(database_name)
@@ -19,23 +35,24 @@ test_url = "https://www.reddit.com" #Reliably does not contain "out of stock" in
 querying_store = False
 query_headers = {'user-agent': 'Titty Skittles discord bot'}
 
-print("Getting token.")
+logger.info("Getting token.")
 token = ""
 with open("bot_token.txt") as file:
     token = file.readline()
+logger.info("Token got.")
 
 async def query_store():
-    print("Beginning store query routine.")
+    logger.info("Beginning store query subroutine.")
     should_alert = True
     while True:
         await asyncio.sleep(60 * 15) #Every 15 minutes.
         response = requests.get(url, headers={'user-agent':'Titty Skittles Discord Bot'})
-        print("Store queried.")
+        logger.info("Store queried.")
         if "out of stock" not in response.text.lower():
-            print("Titty skittles in stock!")
+            logger.info("Titty skittles in stock!")
             if not should_alert:
                 return
-            print("Informing everyone!")
+            logger.info("Informing everyone!")
             c.execute("SELECT * FROM Guilds")
             guilds_and_channels = c.fetchall()
             for guild, channel in guilds_and_channels:
@@ -44,15 +61,15 @@ async def query_store():
                 try:
                     announcement_channel = bot.get_channel(channel)
                 except Exception as e:
-                    print("Something went wrong getting channel " + str(channel) + " may be deleted.")
+                    logger.info("Something went wrong getting channel " + str(channel) + ". It may be deleted.")
                 users = c.fetchall()
-                print("Sending announcement in channel " + announcement_channel.name)
+                logger.info("Sending announcement in channel " + announcement_channel.name)
                 announcement = "HRT is available! 🎉🎉🎉\n"
                 for user, in users:
                     try:
                         announcement += bot.get_user(user).mention + "\n"
                     except Exception as e:
-                        print("Something went wrong with pinging user" + str(user))
+                        logger.info("Something went wrong with pinging user" + str(user))
                         #Remove them from the DB here.
                 await announcement_channel.send(announcement)
             should_alert = False #Don't alert everyone again.
@@ -114,7 +131,7 @@ async def about(context):
 
 @bot.event
 async def on_ready():
-    print("Titty skittles bot ready.")
+    logger.info("Titty skittles bot ready.")
     await bot.change_presence(activity = discord.Game("e!about for info. :)"))
     global querying_store
     if not querying_store:
@@ -127,12 +144,22 @@ async def on_guild_remove(guild):
     c.execute("DELETE FROM Channels WHERE guild_id = ?", guild.id,)
     conn.commit()
 
+@bot.event
+async def on_command_error(context, error):
+    logger.error(f"!!! --- Exception caught in {context.command} command --- !!!")
+    logger.error(error)
+    exception_file = open("log.txt", "a")
+    traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+    traceback.print_exception(type(error), error, error.__traceback__, file=exception_file)
+    exception_file.close()
+    logger.info("!!! --- End exception log. --- !!!")
 
-print("Doing migration.")
+
+logger.info("Doing migration.")
 c.execute("CREATE TABLE IF NOT EXISTS Guilds(guild_id INTEGER PRIMARY KEY NOT NULL, channel_id INTEGER NOT NULL);")
 c.execute("CREATE TABLE IF NOT EXISTS Users(guild_id INTEGER NOT NULL, user_id INTEGER NOT NULL, FOREIGN KEY (guild_id) REFERENCES Channels(guild_id));")
 conn.commit()
-print("Migration done.")
+logger.info("Migration done.")
 
-print("Starting bot.")
+logger.info("Starting bot.")
 bot.run(token)
